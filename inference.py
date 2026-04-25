@@ -9,7 +9,7 @@ environment. Reads API credentials from environment variables.
 ENV VARS (required):
     API_BASE_URL  — The API endpoint for the LLM
     MODEL_NAME    — The model identifier to use
-    HF_TOKEN      — API key (Hugging Face, OpenRouter, etc. — sent as client api_key)
+    OPENROUTER_API_KEY (or HF_TOKEN / OPENAI_API_KEY) — API key passed to the client
 
 Optional:
     INFERENCE_LOG_LLM — If set, append each raw model response to this file path
@@ -35,13 +35,20 @@ except ImportError:
     pass
 
 # --- ENV VARS ---
-# Defaults favour OpenRouter + Llama 3.2 3B; override with env or .env.
+# Defaults favour OpenRouter + a small Llama; override with env or .env.
 API_BASE_URL = os.getenv("API_BASE_URL", "https://openrouter.ai/api/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/llama-3.2-3b-instruct:free")
-HF_TOKEN = os.getenv("HF_TOKEN")
+MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
+# Accept any of the common token-env-var names. Whichever is set first wins.
+API_KEY = (
+    os.getenv("OPENROUTER_API_KEY")
+    or os.getenv("HF_TOKEN")
+    or os.getenv("OPENAI_API_KEY")
+)
 
-if HF_TOKEN is None:
-    raise ValueError("HF_TOKEN environment variable is required")
+if API_KEY is None:
+    raise ValueError(
+        "Set OPENROUTER_API_KEY (or HF_TOKEN / OPENAI_API_KEY) in your env or .env"
+    )
 
 # --- CONFIG ---
 SCENARIO_MAX_STEPS = {"easy": 25, "medium": 35, "hard": 45}
@@ -80,9 +87,11 @@ Tool output: "Discovered host 10.0.1.10 (web), 10.0.1.20 (db)"
 Your reply: {"action_type":"use_tool","tool_name":"web_crawl","arguments":{"host":"10.0.1.10"}}
 
 Rules:
+- Each scenario has a SMALL FIXED number of real vulnerabilities (~3 on easy, ~6 on medium, ~10 on hard). Do NOT exceed that — every extra finding is an escalating false-positive penalty (-0.03, -0.04, ... up to -0.08 each) that wipes out true positives.
+- ONE finding per unique (host, vulnerability_type) pair. Do NOT submit duplicates or near-duplicates.
+- The moment you have NO new evidence to act on, call generate_report. Do NOT keep submitting findings to fill steps.
 - Do NOT repeat list_tools or network_scan once you've called them.
-- Findings are what score points. Tools without findings = 0.
-- If you're uncertain about CVSS/CWE, make a reasonable guess from the evidence — submitting is better than not.
+- If you're uncertain about CVSS/CWE, make a reasonable guess from the evidence — submitting one well-grounded finding is better than not, but inventing findings is worse than submitting nothing.
 """).strip()
 
 
@@ -388,7 +397,11 @@ def run_scenario(
                     grades = getattr(observation, "metadata", {}) or {}
                     grades = grades.get("grades", {})
                     last_grades = grades if isinstance(grades, dict) and grades else None
-                    final_score = grades.get("final_score", reward) if last_grades else 0.0
+                    # On generate_report, the env's reward IS the grader's final_score
+                    # (server/security_audit_env_environment.py:329). Use that as the
+                    # source of truth — `metadata` is currently dropped by Pydantic
+                    # because SecurityAuditObservation doesn't declare a metadata field.
+                    final_score = grades.get("final_score", reward) if last_grades else reward
                     success = final_score > 0
                     break
 
@@ -468,7 +481,7 @@ def main() -> None:
     print(f"API: {API_BASE_URL}")
     print(f"Model: {MODEL_NAME}")
 
-    llm_client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+    llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     env_url = os.getenv("ENV_URL", "http://localhost:8000")
 
     scores: Dict[str, float] = {}
