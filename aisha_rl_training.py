@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-AISHA RL Training Script for Google Colab
+VAPT-Env RL Training Script for Google Colab
 ==========================================
 
 Trains an RL agent on the SecurityAuditEnv using GRPO (Group Relative Policy Optimization).
 
-Environment: https://huggingface.co/spaces/anshumanatrey/security-audit-env
+Environment: https://huggingface.co/spaces/Sayuj63/Vapt-env
 Model: Qwen/Qwen1.5-1.8B-Chat (1.8B parameters, fits in Colab free tier)
 
 Features:
@@ -34,7 +34,7 @@ import sys
 def setup_environment():
     """Configure environment variables for Colab."""
     print("=" * 70)
-    print("AISHA RL TRAINING - SETUP")
+    print("VAPT-Env RL TRAINING - SETUP")
     print("=" * 70)
     
     # Try to get from Colab secrets, fallback to env vars
@@ -48,7 +48,7 @@ def setup_environment():
     
     os.environ['HF_TOKEN'] = HF_TOKEN or ""
     os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY or ""
-    os.environ['API_BASE_URL'] = 'https://anshumanatrey-security-audit-env.hf.space'
+    os.environ['API_BASE_URL'] = 'https://Sayuj63-Vapt-env.hf.space'
     os.environ['MODEL_NAME'] = 'Qwen/Qwen1.5-1.8B-Chat'
     
     print("✓ Environment variables configured")
@@ -481,7 +481,7 @@ def main():
     hf_token, openai_key = setup_environment()
     
     # Initialize environment
-    api_base_url = os.environ.get('API_BASE_URL', 'https://anshumanatrey-security-audit-env.hf.space')
+    api_base_url = os.environ.get('API_BASE_URL', 'https://Sayuj63-Vapt-env.hf.space')
     model_name = os.environ.get('MODEL_NAME', 'Qwen/Qwen1.5-1.8B-Chat')
     
     print(f"\nConnecting to environment: {api_base_url}")
@@ -550,14 +550,14 @@ def main():
     
     # Summary
     print("\n" + "=" * 70)
-    print("AISHA RL TRAINING SUMMARY")
+    print("VAPT-Env RL TRAINING SUMMARY")
     print("=" * 70)
     
     baseline_avg = np.mean(baseline_rewards)
     trained_avg = np.mean(trained_rewards)
     improvement = ((trained_avg - baseline_avg) / abs(baseline_avg)) * 100 if baseline_avg != 0 else 0
     
-    print(f"\nEnvironment: SecurityAuditEnv (AISHA)")
+    print(f"\nEnvironment: SecurityAuditEnv (VAPT-Env)")
     print(f"Scenario: Easy (2 hosts, 3 vulnerabilities)")
     print(f"Model: {model_name}")
     print(f"Training Episodes: {metrics.episode_count}")

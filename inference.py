@@ -45,43 +45,44 @@ if HF_TOKEN is None:
 
 # --- CONFIG ---
 SCENARIO_MAX_STEPS = {"easy": 25, "medium": 35, "hard": 45}
-TEMPERATURE = 0.1
+TEMPERATURE = float(os.getenv("INFERENCE_TEMPERATURE", "0.5"))
 MAX_TOKENS = 1024
 SCENARIOS = ["easy", "medium", "hard"]
 ENV_NAME = "security_audit_env"
 
 # --- SYSTEM PROMPT ---
+# Kept short and example-driven so small open models (Llama 3.2 3B, Qwen 1.5B)
+# can follow it. You're scored on findings submitted, not tools run.
 SYSTEM_PROMPT = textwrap.dedent("""\
-You are a professional security auditor. You interact with the environment using JSON actions.
+You are a security auditor. Reply with ONE JSON object only — no prose, no code fences.
 
-ACTIONS (respond with exactly ONE JSON object, no other text):
+Three action shapes:
+  USE TOOL:   {"action_type":"use_tool","tool_name":"<tool>","arguments":{...}}
+  SUBMIT:     {"action_type":"submit_finding","arguments":{"title":"...","host":"<ip>","type":"<vuln>","severity":"Critical|High|Medium|Low","cvss_score":<0-10>,"cwe":"CWE-XX","owasp":"AXX:2021 - ...","endpoint":"<path>","evidence":"<why>","remediation":"<fix>"}}
+  REPORT:     {"action_type":"generate_report"}
 
-1. {"action_type": "use_tool", "tool_name": "TOOL", "arguments": {...}}
-   Tools: network_scan (target: CIDR), web_crawl (host: IP), test_injection (host, endpoint),
-   test_xss (host, endpoint), test_auth (host), test_config (host), test_crypto (host),
-   check_secrets (host, endpoint), vulnerability_scan (host), service_fingerprint (host)
+Tools (most-used): network_scan(target), web_crawl(host), test_injection(host,endpoint),
+test_xss(host,endpoint), test_auth(host), test_config(host), test_crypto(host),
+check_secrets(host,endpoint), vulnerability_scan(host), service_fingerprint(host).
 
-2. {"action_type": "submit_finding", "arguments": {"title": "...", "host": "IP",
-   "type": "Vuln Type", "severity": "Critical|High|Medium|Low", "cvss_score": 9.8,
-   "cwe": "CWE-XXX", "owasp": "AXX:2021 - ...", "endpoint": "/path",
-   "evidence": "...", "remediation": "..."}}
+Rough flow: scan once → crawl each host once → test endpoints → submit a finding for
+EVERY anomaly, error, or labeled issue you see in tool output → generate_report.
 
-3. {"action_type": "generate_report"}  (call this when done to get your score)
+Examples (output format — copy this style):
 
-STRICT WORKFLOW — follow this order, do NOT repeat steps:
-Phase 1: network_scan the target CIDR (do this ONCE, never again)
-Phase 2: web_crawl each discovered host (once per host)
-Phase 3: For each endpoint found, run test_injection, test_xss, check_secrets.
-         For each host, run test_auth, test_config, test_crypto, vulnerability_scan.
-Phase 4: For EVERY anomaly or issue in tool output, submit_finding with your assessment.
-         You MUST infer the vulnerability type, CWE, CVSS, and severity from the evidence.
-Phase 5: generate_report
+Tool output: "[CRITICAL] SQL Injection DETECTED at /api/login (param=username), CWE-89, CVSS 9.8"
+Your reply: {"action_type":"submit_finding","arguments":{"title":"SQL Injection in /api/login","host":"10.0.1.10","type":"SQL Injection","severity":"Critical","cvss_score":9.8,"cwe":"CWE-89","owasp":"A03:2021 - Injection","endpoint":"/api/login","evidence":"Tool flagged param=username vulnerable","remediation":"Use parameterized queries"}}
 
-CRITICAL RULES:
-- NEVER run network_scan or service_fingerprint more than once.
-- After web_crawl, immediately start testing endpoints — do NOT re-scan.
-- When tool output shows anomalies (unusual HTTP responses, errors, data leaks), ALWAYS submit a finding.
-- You are scored on findings submitted, not on tools run. Running tools without submitting findings = 0 score.
+Tool output: "Anomalous response — server fetched internal URL via image_url parameter (HTTP 200, body: AWS metadata)"
+Your reply: {"action_type":"submit_finding","arguments":{"title":"SSRF via image_url","host":"10.0.2.20","type":"SSRF","severity":"High","cvss_score":8.6,"cwe":"CWE-918","owasp":"A10:2021 - SSRF","endpoint":"/api/upload","evidence":"image_url parameter fetched internal AWS metadata","remediation":"Validate and allow-list URL hosts"}}
+
+Tool output: "Discovered host 10.0.1.10 (web), 10.0.1.20 (db)"
+Your reply: {"action_type":"use_tool","tool_name":"web_crawl","arguments":{"host":"10.0.1.10"}}
+
+Rules:
+- Do NOT repeat list_tools or network_scan once you've called them.
+- Findings are what score points. Tools without findings = 0.
+- If you're uncertain about CVSS/CWE, make a reasonable guess from the evidence — submitting is better than not.
 """).strip()
 
 

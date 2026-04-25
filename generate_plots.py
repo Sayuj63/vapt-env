@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AISHA Agent Comparison Script
+VAPT-Env Agent Comparison Script
 ==============================
 
 Compares two agents on the SecurityAuditEnv:
@@ -27,7 +27,7 @@ from pathlib import Path
 @dataclass
 class Config:
     """Configuration for the comparison."""
-    api_base_url: str = "https://anshumanatrey-security-audit-env.hf.space"
+    api_base_url: str = "https://Sayuj63-Vapt-env.hf.space"
     hf_token: str = ""
     model_name: str = "claude-sonnet-4-6"  # or "gpt-4o-mini"
     num_episodes: int = 10
@@ -352,7 +352,7 @@ def plot_episode_rewards(random_metrics: AgentMetrics, llm_metrics: AgentMetrics
     
     plt.xlabel('Episode', fontsize=12, fontweight='bold')
     plt.ylabel('Total Reward (0.0 - 1.0)', fontsize=12, fontweight='bold')
-    plt.title('AISHA: Episode Reward — Random vs LLM Agent', fontsize=14, fontweight='bold')
+    plt.title('VAPT-Env: Episode Reward — Random vs LLM Agent', fontsize=14, fontweight='bold')
     plt.legend(fontsize=11, loc='best')
     plt.grid(True, alpha=0.3)
     plt.xticks(episodes)
@@ -405,7 +405,7 @@ def plot_cumulative_rewards(random_metrics: AgentMetrics, llm_metrics: AgentMetr
     
     plt.xlabel('Step', fontsize=12, fontweight='bold')
     plt.ylabel('Cumulative Reward', fontsize=12, fontweight='bold')
-    plt.title('AISHA: Cumulative Reward Over Steps', fontsize=14, fontweight='bold')
+    plt.title('VAPT-Env: Cumulative Reward Over Steps', fontsize=14, fontweight='bold')
     plt.legend(fontsize=11, loc='best')
     plt.grid(True, alpha=0.3)
     
@@ -441,7 +441,7 @@ def plot_vulnerabilities_found(random_metrics: AgentMetrics, llm_metrics: AgentM
     
     plt.xlabel('Episode', fontsize=12, fontweight='bold')
     plt.ylabel('Vulnerabilities Found / Total (3)', fontsize=12, fontweight='bold')
-    plt.title('AISHA: Vulnerability Detection Rate', fontsize=14, fontweight='bold')
+    plt.title('VAPT-Env: Vulnerability Detection Rate', fontsize=14, fontweight='bold')
     plt.xticks(x, episodes)
     plt.ylim(0, 3.5)
     plt.legend(fontsize=11, loc='best')
@@ -459,7 +459,7 @@ def plot_vulnerabilities_found(random_metrics: AgentMetrics, llm_metrics: AgentM
 def print_summary_table(random_metrics: AgentMetrics, llm_metrics: AgentMetrics):
     """Print summary table."""
     print("\n" + "=" * 70)
-    print("AISHA AGENT COMPARISON SUMMARY")
+    print("VAPT-Env AGENT COMPARISON SUMMARY")
     print("=" * 70)
     
     print(f"\n{'Metric':<25} {'Random Agent':<20} {'LLM Agent':<20}")
@@ -498,7 +498,7 @@ def print_summary_table(random_metrics: AgentMetrics, llm_metrics: AgentMetrics)
 def main():
     """Main execution."""
     print("\n" + "=" * 70)
-    print("AISHA AGENT COMPARISON")
+    print("VAPT-Env AGENT COMPARISON")
     print("=" * 70)
     
     # Setup
