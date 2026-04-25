@@ -10,7 +10,10 @@ from typing import Any, Dict
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 
-from .models import SecurityAuditAction, SecurityAuditObservation, SecurityAuditState
+try:
+    from .models import SecurityAuditAction, SecurityAuditObservation, SecurityAuditState
+except ImportError:  # pragma: no cover
+    from models import SecurityAuditAction, SecurityAuditObservation, SecurityAuditState
 
 
 class SecurityAuditEnv(

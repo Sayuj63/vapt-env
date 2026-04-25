@@ -5,12 +5,37 @@
 
 """Security Audit Environment — AI-powered VAPT training."""
 
-from .client import SecurityAuditEnv
-from .models import SecurityAuditAction, SecurityAuditObservation, SecurityAuditState
+# Pytest (and other tools) may import this file as a top-level module when the repo
+# root is treated as a "package" path. Relative imports need a parent package; fall
+# back to same-directory imports so `pytest` still works. Normal `import security_audit_env`
+# from an install uses the relative branch.
+try:
+    from .client import SecurityAuditEnv
+    from .models import (
+        LLMJsonAction,
+        SecurityAuditAction,
+        SecurityAuditObservation,
+        SecurityAuditState,
+        extract_json_object_from_text,
+        parse_llm_action_text,
+    )
+except ImportError:  # pragma: no cover
+    from client import SecurityAuditEnv
+    from models import (
+        LLMJsonAction,
+        SecurityAuditAction,
+        SecurityAuditObservation,
+        SecurityAuditState,
+        extract_json_object_from_text,
+        parse_llm_action_text,
+    )
 
 __all__ = [
+    "LLMJsonAction",
     "SecurityAuditAction",
     "SecurityAuditObservation",
     "SecurityAuditState",
     "SecurityAuditEnv",
+    "extract_json_object_from_text",
+    "parse_llm_action_text",
 ]

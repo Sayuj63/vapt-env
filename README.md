@@ -422,9 +422,9 @@ Key research validating our design:
 ## Links & Resources
 
 - **Live Environment**: https://huggingface.co/spaces/Sayuj63/Vapt-env
-- **Blog Post**: [VAPT env: Teaching AI to Reason About Security](./VAPT_env_BLOG_POST_FINAL.md) — Read the full story
+- **Blog Post**: [VAPT env: Teaching AI to Reason About Security](./docs/blog/VAPT_env_BLOG_POST_FINAL.md) — Read the full story
 - **Training Notebook**: [VAPT_env_RL_Training_Colab.ipynb](./AISHA_RL_Training_Colab.ipynb)
 - **Agent Comparison Script**: [generate_plots.py](./generate_plots.py)
-- **Publication Guide**: [BLOG_PUBLICATION_GUIDE.md](./BLOG_PUBLICATION_GUIDE.md) — How to publish the blog post
+- **Publication Guide**: [BLOG_PUBLICATION_GUIDE.md](./docs/blog/BLOG_PUBLICATION_GUIDE.md) — How to publish the blog post
 - **Team**: Your Team Name — [Your Team Members]
 - **Hackathon**: Meta PyTorch OpenEnv Hackathon India 2026

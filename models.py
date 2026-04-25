@@ -10,10 +10,12 @@ Simulates real-world VAPT (Vulnerability Assessment & Penetration Testing)
 engagements where an AI agent audits infrastructure for security compliance.
 """
 
-from typing import Any, Dict, List, Literal, Optional
+import json
+import re
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from openenv.core.env_server.types import Action, Observation, State
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
 class SecurityAuditAction(Action):
@@ -39,6 +41,79 @@ class SecurityAuditAction(Action):
         default_factory=dict,
         description="Tool-specific arguments",
     )
+
+
+class LLMJsonAction(BaseModel):
+    """Wire JSON for one model turn, validated before ``SecurityAuditAction``.
+
+    Unknown top-level keys are ignored so minor format drift does not fail parsing.
+    """
+
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+    action_type: Literal["list_tools", "use_tool", "submit_finding", "generate_report"] = Field(
+        ...,
+        description="Which environment action to take",
+    )
+    tool_name: Optional[str] = Field(
+        default=None,
+        description="Tool name when action_type is use_tool",
+    )
+    arguments: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments for use_tool or fields for submit_finding",
+    )
+
+    def to_security_audit_action(self) -> SecurityAuditAction:
+        return SecurityAuditAction(
+            action_type=self.action_type,
+            tool_name=self.tool_name,
+            arguments=self.arguments,
+        )
+
+
+def extract_json_object_from_text(raw: str) -> Optional[Dict[str, Any]]:
+    """Return the first JSON object from model text, or None."""
+    if not (raw and raw.strip()):
+        return None
+
+    text = raw.strip()
+    text = re.sub(r"```json\s*", "", text)
+    text = re.sub(r"```\s*$", "", text, flags=re.MULTILINE)
+    text = text.strip()
+
+    try:
+        val = json.loads(text)
+    except json.JSONDecodeError:
+        val = None
+
+    if isinstance(val, dict):
+        return val
+
+    match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, re.DOTALL)
+    if match:
+        try:
+            v2 = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return None
+        if isinstance(v2, dict):
+            return v2
+
+    return None
+
+
+def parse_llm_action_text(raw: str) -> Tuple[Optional[LLMJsonAction], Optional[str]]:
+    """Parse and validate one action from a chat message.
+
+    Returns (model, None) on success, or (None, error_message) on failure.
+    """
+    data = extract_json_object_from_text(raw)
+    if data is None:
+        return None, "Could not extract a JSON object from model response"
+    try:
+        return LLMJsonAction.model_validate(data), None
+    except ValidationError as exc:
+        return None, str(exc)
 
 
 class SecurityAuditObservation(Observation):

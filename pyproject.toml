@@ -8,6 +8,11 @@
 requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
+# Only run tests from tests/ — avoids collecting repo-root __init__.py (package) as a module.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [project]
 name = "openenv-security_audit_env"
 version = "0.1.0"
@@ -19,6 +24,7 @@ dependencies = [
     # "openenv-core[core] @ git+https://github.com/meta-pytorch/OpenEnv.git",
     "openenv-core[core]>=0.2.3",
     "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
