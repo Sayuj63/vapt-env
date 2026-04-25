@@ -8,7 +8,7 @@ description: >
   AI Security Audit Benchmark — trains and evaluates AI agents on real-world
   VAPT (Vulnerability Assessment & Penetration Testing) engagements with
   three-tier output difficulty and compliance framework mapping.
-version: "1.0.0"
+version: "2.0.0"
 tasks:
   - id: easy
     name: Startup Web App Audit

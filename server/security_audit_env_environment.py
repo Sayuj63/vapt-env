@@ -508,6 +508,7 @@ class SecurityAuditEnvironment(Environment):
             self._scenario, self._submitted_findings,
             self._discovered_hosts, self._discovered_ports,
             steps_used=self._state.step_count,
+            subagent_outcomes=self._subagent_outcomes,
         )
         final_score = grades["final_score"]
         self._episode_reward += final_score

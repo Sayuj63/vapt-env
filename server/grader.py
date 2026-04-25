@@ -43,11 +43,19 @@ def grade_episode(
     discovered_hosts: List[str],
     discovered_ports: Dict[str, List[int]],
     steps_used: int = 0,
+    subagent_outcomes: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Grade a completed audit episode. Returns component scores and final score (0.0-1.0)."""
+    """Grade a completed audit episode. Returns component scores and final score (0.0-1.0).
+
+    ``subagent_outcomes`` is a list of dicts (one per closed sub-agent) containing
+    at minimum {"productive": bool}. Used to compute the Delegation Score (5%).
+    Defaults to empty list for backward compat / single-agent runs — in that
+    case Delegation Score = 1.0 (neutral, no penalty for not spawning).
+    """
     ground_truth = scenario.get("vulnerabilities", [])
     all_hosts = scenario.get("hosts", {})
     honeypots = scenario.get("honeypots", [])
+    subagent_outcomes = subagent_outcomes or []
     max_steps = scenario.get("max_steps", 50)
 
     # 1. Match findings to ground truth
@@ -179,9 +187,19 @@ def grade_episode(
     # 12. Efficiency — informational metric
     efficiency = 1.0 - (steps_used / max_steps) if max_steps > 0 and steps_used > 0 else 0.0
 
-    # Final weighted score
-    # Weights: detection 30%, severity 20%, classification 15%, coverage 5%,
-    # report 10%, pivoting 5%, exploitation 5%, compliance 5%, FP/honeypot penalties
+    # 13. Delegation Score (5%) — multi-agent decision quality.
+    # Fraction of spawned sub-agents that turned out productive (>=1 finding).
+    # If the agent never spawned, Delegation Score = 1.0 — neutral, so single-agent
+    # runs aren't penalised. This rewards agents that *correctly* identify when to
+    # delegate a divergent attack-surface branch versus persist on the main thread.
+    total_spawns = len(subagent_outcomes)
+    productive_spawns = sum(1 for o in subagent_outcomes if o.get("productive"))
+    delegation_score = (productive_spawns / total_spawns) if total_spawns else 1.0
+
+    # Final weighted score (sums to 100%):
+    #   detection 30%, severity 20%, classification 15%, report 10%,
+    #   coverage 5%, pivoting 5%, exploitation 5%, compliance 5%, delegation 5%
+    # Multiplier: coverage_multiplier. Penalties: FP, honeypot.
     raw_score = (
         0.30 * detection_rate
         + 0.05 * coverage
@@ -191,7 +209,7 @@ def grade_episode(
         + 0.05 * pivoting_score
         + 0.05 * exploitation_proof
         + 0.05 * compliance_coverage
-        + 0.05 * (1.0 if true_positives > 0 else 0.0)
+        + 0.05 * delegation_score
     ) * coverage_multiplier - fp_penalty - honeypot_penalty
 
     final_score = max(0.0, min(1.0, raw_score))
@@ -224,6 +242,10 @@ def grade_episode(
         "compliance_controls_covered": len(compliance_controls_covered),
         "compliance_controls_expected": len(compliance_controls_expected),
         "efficiency": round(efficiency, 4),
+        # Multi-agent delegation metrics
+        "delegation_score": round(delegation_score, 4),
+        "subagent_total": total_spawns,
+        "subagent_productive": productive_spawns,
     }
 
 

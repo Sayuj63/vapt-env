@@ -63,9 +63,11 @@ ENV_NAME = "security_audit_env"
 SYSTEM_PROMPT = textwrap.dedent("""\
 You are a security auditor. Reply with ONE JSON object only — no prose, no code fences.
 
-Three action shapes:
+Five action shapes:
   USE TOOL:   {"action_type":"use_tool","tool_name":"<tool>","arguments":{...}}
   SUBMIT:     {"action_type":"submit_finding","arguments":{"title":"...","host":"<ip>","type":"<vuln>","severity":"Critical|High|Medium|Low","cvss_score":<0-10>,"cwe":"CWE-XX","owasp":"AXX:2021 - ...","endpoint":"<path>","evidence":"<why>","remediation":"<fix>"}}
+  SPAWN:      {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"10.0.2.30","budget":6}}
+  RETURN:     {"action_type":"return_to_parent","arguments":{}}
   REPORT:     {"action_type":"generate_report"}
 
 Tools (most-used): network_scan(target), web_crawl(host), test_injection(host,endpoint),
@@ -74,6 +76,19 @@ check_secrets(host,endpoint), vulnerability_scan(host), service_fingerprint(host
 
 Rough flow: scan once → crawl each host once → test endpoints → submit a finding for
 EVERY anomaly, error, or labeled issue you see in tool output → generate_report.
+
+DELEGATION (the multi-agent move). Tool output sometimes ends with a
+"[REVEALED] Sub-agent delegation candidates: ..." block. Those are *new*
+attack-surface targets uncovered by the current finding (e.g. an SSRF reveals
+internal hosts you couldn't see before). Two ways to handle them:
+  1. Continue the main thread and ignore them (safer if the main scope still has
+     clear leads).
+  2. Spawn a sub-agent: {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"<ip>","budget":6}}
+     The next steps will be scoped to that branch; recon/test/submit findings
+     on the new target. When you've squeezed it (or it's clearly empty), call
+     {"action_type":"return_to_parent","arguments":{}} and the parent thread
+     resumes. Productive sub-agents (≥1 finding) earn +0.05; unproductive ones
+     cost -0.05, so only spawn when you have a real lead.
 
 Examples (output format — copy this style):
 
@@ -357,6 +372,10 @@ def run_scenario(
                 action_str = action.action_type
                 if action.tool_name:
                     action_str += f"({action.tool_name})"
+                elif action.action_type == "spawn_subagent":
+                    _t = (action.arguments or {}).get("target", "?")
+                    _s = (action.arguments or {}).get("scope", "?")
+                    action_str += f"({_s}:{_t})"
 
                 try:
                     result = env.step(action)
