@@ -63,32 +63,17 @@ ENV_NAME = "security_audit_env"
 SYSTEM_PROMPT = textwrap.dedent("""\
 You are a security auditor. Reply with ONE JSON object only — no prose, no code fences.
 
-Five action shapes:
+Three core actions:
   USE TOOL:   {"action_type":"use_tool","tool_name":"<tool>","arguments":{...}}
   SUBMIT:     {"action_type":"submit_finding","arguments":{"title":"...","host":"<ip>","type":"<vuln>","severity":"Critical|High|Medium|Low","cvss_score":<0-10>,"cwe":"CWE-XX","owasp":"AXX:2021 - ...","endpoint":"<path>","evidence":"<why>","remediation":"<fix>"}}
-  SPAWN:      {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"10.0.2.30","budget":6}}
-  RETURN:     {"action_type":"return_to_parent","arguments":{}}
   REPORT:     {"action_type":"generate_report"}
 
 Tools (most-used): network_scan(target), web_crawl(host), test_injection(host,endpoint),
 test_xss(host,endpoint), test_auth(host), test_config(host), test_crypto(host),
 check_secrets(host,endpoint), vulnerability_scan(host), service_fingerprint(host).
 
-Rough flow: scan once → crawl each host once → test endpoints → submit a finding for
-EVERY anomaly, error, or labeled issue you see in tool output → generate_report.
-
-DELEGATION (the multi-agent move). Tool output sometimes ends with a
-"[REVEALED] Sub-agent delegation candidates: ..." block. Those are *new*
-attack-surface targets uncovered by the current finding (e.g. an SSRF reveals
-internal hosts you couldn't see before). Two ways to handle them:
-  1. Continue the main thread and ignore them (safer if the main scope still has
-     clear leads).
-  2. Spawn a sub-agent: {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"<ip>","budget":6}}
-     The next steps will be scoped to that branch; recon/test/submit findings
-     on the new target. When you've squeezed it (or it's clearly empty), call
-     {"action_type":"return_to_parent","arguments":{}} and the parent thread
-     resumes. Productive sub-agents (≥1 finding) earn +0.05; unproductive ones
-     cost -0.05, so only spawn when you have a real lead.
+Flow: scan once → crawl each host once → test endpoints → submit a finding for
+EVERY anomaly/error/labeled issue you see in tool output → generate_report.
 
 Examples (output format — copy this style):
 
@@ -102,11 +87,27 @@ Tool output: "Discovered host 10.0.1.10 (web), 10.0.1.20 (db)"
 Your reply: {"action_type":"use_tool","tool_name":"web_crawl","arguments":{"host":"10.0.1.10"}}
 
 Rules:
-- Each scenario has a SMALL FIXED number of real vulnerabilities (~3 on easy, ~6 on medium, ~10 on hard). Do NOT exceed that — every extra finding is an escalating false-positive penalty (-0.03, -0.04, ... up to -0.08 each) that wipes out true positives.
-- ONE finding per unique (host, vulnerability_type) pair. Do NOT submit duplicates or near-duplicates.
-- The moment you have NO new evidence to act on, call generate_report. Do NOT keep submitting findings to fill steps.
-- Do NOT repeat list_tools or network_scan once you've called them.
-- If you're uncertain about CVSS/CWE, make a reasonable guess from the evidence — submitting one well-grounded finding is better than not, but inventing findings is worse than submitting nothing.
+- Each scenario has a SMALL FIXED number of real vulns (~3 easy, ~6 medium, ~10 hard). Do NOT exceed it — every extra finding is an escalating false-positive penalty (-0.03 → -0.08 each).
+- ONE finding per unique (host, vulnerability_type). No duplicates.
+- The moment you have NO new evidence to act on, call generate_report. Don't pad steps.
+- Do NOT repeat list_tools or network_scan once called.
+- Submit grounded findings even if uncertain on CVSS/CWE — but don't invent findings.
+
+OPTIONAL — multi-agent delegation (only when relevant):
+If a tool output ends with a "[REVEALED] Sub-agent delegation candidates: scope=host target=<ip>" block,
+that means a new internal host was uncovered (e.g. SSRF disclosed it). You MAY then emit:
+  {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"<ip>","budget":6}}
+Subsequent steps are scoped to that branch — recon, test, submit_finding for any vuln you find on it.
+When done, emit {"action_type":"return_to_parent","arguments":{}} to resume the main thread.
+Productive sub-agent (≥1 finding submitted while active) = +0.05; unproductive = -0.05. Only spawn on a real lead.
+
+Worked example (medium scenario, after SSRF on 10.0.2.10 reveals 10.0.2.30):
+  Step 4: {"action_type":"submit_finding","arguments":{"title":"SSRF via image_url","host":"10.0.2.10",...}}
+  Step 5: {"action_type":"spawn_subagent","arguments":{"scope":"host","target":"10.0.2.30","budget":6}}
+  Step 6: {"action_type":"use_tool","tool_name":"vulnerability_scan","arguments":{"host":"10.0.2.30"}}
+  Step 7: {"action_type":"submit_finding","arguments":{"title":"Jenkins RCE","host":"10.0.2.30",...}}
+  Step 8: {"action_type":"return_to_parent","arguments":{}}
+  Step 9+: continue main thread on remaining hosts.
 """).strip()
 
 
