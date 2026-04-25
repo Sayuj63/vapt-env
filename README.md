@@ -1,5 +1,5 @@
 ---
-title: SecurityAuditEnv -- AI Security Reasoning Benchmark
+title: Vapt-Env -- AI Security Reasoning Benchmark
 emoji: "🔒"
 colorFrom: blue
 colorTo: purple
@@ -12,7 +12,7 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 
 # SecurityAuditEnv -- Can Your AI Agent Actually Reason About Security?
 
-**Live Environment:** https://huggingface.co/spaces/anshumanatrey/security-audit-env
+**Live Environment:** https://huggingface.co/spaces/Sayuj63/Vapt-env
 
 Most AI security tools parse labeled scanner output. We measure what happens when the labels disappear.
 
@@ -361,7 +361,7 @@ docker build -t security-audit-env -f server/Dockerfile .
 docker run -p 8000:8000 security-audit-env
 
 # HuggingFace Spaces
-openenv push --repo-id your-username/security-audit-env
+openenv push --repo-id Sayuj63/Vapt-env
 
 # Baseline inference
 export API_BASE_URL="https://router.huggingface.co/v1"
@@ -421,7 +421,7 @@ Key research validating our design:
 
 ## Links & Resources
 
-- **Live Environment**: https://huggingface.co/spaces/anshumanatrey/security-audit-env
+- **Live Environment**: https://huggingface.co/spaces/Sayuj63/Vapt-env
 - **Blog Post**: [VAPT env: Teaching AI to Reason About Security](./VAPT_env_BLOG_POST_FINAL.md) — Read the full story
 - **Training Notebook**: [VAPT_env_RL_Training_Colab.ipynb](./AISHA_RL_Training_Colab.ipynb)
 - **Agent Comparison Script**: [generate_plots.py](./generate_plots.py)
