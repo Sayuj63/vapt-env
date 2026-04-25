@@ -40,5 +40,17 @@ server = "security_audit_env.server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["security_audit_env", "security_audit_env.server"]
-package-dir = { "security_audit_env" = ".", "security_audit_env.server" = "server" }
+packages = [
+    "security_audit_env",
+    "security_audit_env.server",
+    "security_audit_env.server.tools_engine",
+    "security_audit_env.server.knowledge_base",
+    "security_audit_env.server.generator",
+]
+
+[tool.setuptools.package-dir]
+"security_audit_env" = "."
+"security_audit_env.server" = "server"
+"security_audit_env.server.tools_engine" = "server/tools_engine"
+"security_audit_env.server.knowledge_base" = "server/knowledge_base"
+"security_audit_env.server.generator" = "server/generator"
