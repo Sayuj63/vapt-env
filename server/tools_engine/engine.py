@@ -122,12 +122,28 @@ def execute_tool(
     discovered_hosts: List[str],
     discovered_ports: Dict[str, List[int]],
     discovered_vulns: Optional[Set[str]] = None,
-) -> Tuple[str, List[str], Dict[str, List[int]], float]:
-    """Execute a simulated tool and return (output, new_hosts, new_ports, reward).
+) -> Tuple[str, List[str], Dict[str, List[int]], float, List[Dict[str, Any]]]:
+    """Execute a simulated tool and return:
 
-    This is a drop-in replacement for the old ``tools.execute_tool``.
+    ``(output, new_hosts, new_ports, reward, revealed_targets)``
+
+    ``revealed_targets`` is a list of dicts shaped like
+    ``{"scope": "host|endpoint|cred", "target": "10.0.2.30", "context": "..."}``.
+    Tools emit revelations when their output discloses a follow-up surface
+    (e.g. SSRF dumping an internal IP) — the agent can use ``spawn_subagent``
+    to delegate investigation of those branches without losing the main thread.
+
+    Handlers that haven't yet been updated to return a 5-tuple will have an
+    empty ``revealed_targets`` list back-filled here, so this stays a drop-in
+    replacement for the old 4-tuple contract during Phase 1.
     """
     handler = TOOL_HANDLERS.get(tool_name)
     if not handler:
-        return (f"Error: Unknown tool '{tool_name}'. Use list_tools to see available tools.", [], {}, -0.05)
-    return handler(arguments, scenario, discovered_hosts, discovered_ports, discovered_vulns)
+        return (
+            f"Error: Unknown tool '{tool_name}'. Use list_tools to see available tools.",
+            [], {}, -0.05, [],
+        )
+    result = handler(arguments, scenario, discovered_hosts, discovered_ports, discovered_vulns)
+    if len(result) == 4:  # legacy 4-tuple — pad with empty revelations
+        return (*result, [])
+    return result

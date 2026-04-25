@@ -47,6 +47,47 @@ def _normalize_difficulty(scenario: Dict[str, Any]) -> str:
     return "easy"
 
 
+def _revelations_for_vulns(
+    matched: List[Dict[str, Any]],
+    scenario: Dict[str, Any],
+    discovered_hosts: List[str],
+) -> List[Dict[str, Any]]:
+    """Emit `revealed_targets` for vulns that gate progressive-discovery hosts.
+
+    When a tool finds a vulnerability whose ID appears in some host's
+    `hidden_until` chain, that host becomes investigatable — but the agent
+    might not yet have submitted the finding (which is what officially adds
+    the host to discovered_hosts). Surfacing it via revealed_targets lets
+    the agent **delegate** the branch to a sub-agent without breaking its
+    primary focus.
+    """
+    if not matched:
+        return []
+    hosts = scenario.get("hosts", {})
+    matched_ids = {v.get("id") for v in matched if v.get("id")}
+    out: List[Dict[str, Any]] = []
+    for ip, info in hosts.items():
+        if ip in discovered_hosts:
+            continue
+        gates = info.get("hidden_until") or []
+        if not gates:
+            continue
+        triggers = [g for g in gates if g in matched_ids]
+        if not triggers:
+            continue
+        out.append({
+            "scope": "host",
+            "target": ip,
+            "context": (
+                f"Investigation gateway: vulnerability {triggers[0]} indicates "
+                f"reachable internal host {ip}. Consider spawning a sub-agent "
+                f"to recon/exploit it without losing the main thread."
+            ),
+            "trigger_vuln_ids": triggers,
+        })
+    return out
+
+
 def _build_context(
     vuln: Dict[str, Any],
     host: str,
@@ -105,7 +146,7 @@ def handle_test_injection(
             f"  Tested: SQLi (error-based, blind, time-based), command injection, SSTI, SSRF\n"
             f"  Payloads: 47 injection patterns tested\n"
             f"  Result: No injection vulnerabilities detected on this endpoint.",
-            [], {}, 0.01,
+            [], {}, 0.01, [],
         )
 
     output_parts = [f"Injection testing on {host}{endpoint}:", ""]
@@ -114,7 +155,14 @@ def handle_test_injection(
         output_parts.append(format_tool_output(v, difficulty, context))
         output_parts.append("")
 
-    return "\n".join(output_parts), [], {}, 0.08
+    revelations = _revelations_for_vulns(vulns, scenario, discovered_hosts)
+    if revelations:
+        output_parts.append("[REVEALED] Sub-agent delegation candidates:")
+        for r in revelations:
+            output_parts.append(f"  - scope={r['scope']} target={r['target']}  ({r['context']})")
+        output_parts.append("")
+
+    return "\n".join(output_parts), [], {}, 0.08, revelations
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +208,14 @@ def handle_test_xss(
         output_parts.append(format_tool_output(v, difficulty, context))
         output_parts.append("")
 
-    return "\n".join(output_parts), [], {}, 0.08
+    revelations = _revelations_for_vulns(vulns, scenario, discovered_hosts)
+    if revelations:
+        output_parts.append("[REVEALED] Sub-agent delegation candidates:")
+        for r in revelations:
+            output_parts.append(f"  - scope={r['scope']} target={r['target']}  ({r['context']})")
+        output_parts.append("")
+
+    return "\n".join(output_parts), [], {}, 0.08, revelations
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +266,14 @@ def handle_test_auth(
         output_parts.append(format_tool_output(v, difficulty, context))
         output_parts.append("")
 
-    return "\n".join(output_parts), [], {}, 0.08
+    revelations = _revelations_for_vulns(vulns, scenario, discovered_hosts)
+    if revelations:
+        output_parts.append("[REVEALED] Sub-agent delegation candidates:")
+        for r in revelations:
+            output_parts.append(f"  - scope={r['scope']} target={r['target']}  ({r['context']})")
+        output_parts.append("")
+
+    return "\n".join(output_parts), [], {}, 0.08, revelations
 
 
 # ---------------------------------------------------------------------------

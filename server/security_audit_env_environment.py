@@ -64,6 +64,15 @@ class SecurityAuditEnvironment(Environment):
         self._episode_reward: float = 0.0
         self._last_tool_call: tuple = ()
         self._rng: random.Random = random.Random()
+        # Multi-agent extension: dynamic attack surface + sub-agent registry.
+        # ``_attack_surface`` starts as the original scenario hosts and grows
+        # whenever tools reveal new targets (e.g. SSRF dumping internal IPs).
+        # ``_active_subagents`` tracks delegated investigation branches keyed
+        # by spawn_id; each entry carries scope/target/budget/findings/parent_step.
+        self._attack_surface: set = set()
+        self._revealed_targets: list = []
+        self._active_subagents: dict = {}
+        self._subagent_outcomes: list = []  # for grader's Delegation Score
 
     def reset(self, seed=None, episode_id=None, **kwargs) -> SecurityAuditObservation:
         """Reset the environment for a new audit engagement.
@@ -83,6 +92,12 @@ class SecurityAuditEnvironment(Environment):
         self._episode_reward = 0.0
         self._last_tool_call = ()
         self._rng = random.Random(seed) if seed is not None else random.Random()
+        # Reset multi-agent state. Attack surface seeds from initial scenario
+        # hosts; will grow as tools reveal targets during the episode.
+        self._attack_surface = set((self._scenario or {}).get("hosts", {}).keys())
+        self._revealed_targets = []
+        self._active_subagents = {}
+        self._subagent_outcomes = []
 
         eid = episode_id or str(uuid4())
         self._state = SecurityAuditState(
@@ -127,12 +142,16 @@ class SecurityAuditEnvironment(Environment):
             return self._handle_use_tool(action, steps_remaining)
         elif action.action_type == "submit_finding":
             return self._handle_submit_finding(action, steps_remaining)
+        elif action.action_type == "spawn_subagent":
+            return self._handle_spawn_subagent(action, steps_remaining)
+        elif action.action_type == "return_to_parent":
+            return self._handle_return_to_parent(action, steps_remaining)
         elif action.action_type == "generate_report":
             return self._finish_episode("Audit report generated.", truncated=False)
         else:
             return SecurityAuditObservation(
                 tool_output=f"Unknown action_type: {action.action_type}",
-                message="Use list_tools, use_tool, submit_finding, or generate_report.",
+                message="Use list_tools, use_tool, submit_finding, spawn_subagent, or generate_report.",
                 discovered_hosts=self._discovered_hosts,
                 discovered_services=self._discovered_services,
                 findings_submitted=len(self._submitted_findings),
@@ -141,6 +160,34 @@ class SecurityAuditEnvironment(Environment):
                 done=False,
                 reward=-0.05,
             )
+
+    def _handle_spawn_subagent(self, action: SecurityAuditAction, steps_remaining: int) -> SecurityAuditObservation:
+        """Phase 1 stub. Real registration + budget tracking lands in Phase 3."""
+        return SecurityAuditObservation(
+            tool_output="spawn_subagent acknowledged (full implementation in Phase 3).",
+            message="Sub-agent infra is being wired up; this action is a no-op for now.",
+            discovered_hosts=self._discovered_hosts,
+            discovered_services=self._discovered_services,
+            findings_submitted=len(self._submitted_findings),
+            steps_remaining=steps_remaining,
+            current_phase=self._current_phase(),
+            done=False,
+            reward=0.0,
+        )
+
+    def _handle_return_to_parent(self, action: SecurityAuditAction, steps_remaining: int) -> SecurityAuditObservation:
+        """Phase 1 stub. Sub-agent termination lands in Phase 3."""
+        return SecurityAuditObservation(
+            tool_output="return_to_parent acknowledged (no active sub-agent context).",
+            message="Use this when finishing a sub-agent investigation.",
+            discovered_hosts=self._discovered_hosts,
+            discovered_services=self._discovered_services,
+            findings_submitted=len(self._submitted_findings),
+            steps_remaining=steps_remaining,
+            current_phase=self._current_phase(),
+            done=False,
+            reward=0.0,
+        )
 
     @property
     def state(self) -> SecurityAuditState:
@@ -195,10 +242,18 @@ class SecurityAuditEnvironment(Environment):
         redundancy_penalty = -0.01 if current_call == self._last_tool_call else 0.0
         self._last_tool_call = current_call
 
-        output, new_hosts, new_ports, tool_reward = execute_tool(
+        output, new_hosts, new_ports, tool_reward, revealed = execute_tool(
             action.tool_name, action.arguments, self._scenario,
             self._discovered_hosts, self._discovered_ports, self._discovered_vulns,
         )
+
+        # Phase 1: any new revelations expand the dynamic attack_surface so
+        # later spawn_subagent actions can validate their target.
+        for r in revealed:
+            tgt = r.get("target")
+            if tgt and tgt not in self._attack_surface:
+                self._attack_surface.add(tgt)
+                self._revealed_targets.append({**r, "revealed_at_step": self._state.step_count})
 
         # Difficulty multiplier on positive rewards
         difficulty = self._scenario.get("id", "easy")

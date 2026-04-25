@@ -158,7 +158,7 @@ class TestParameterTesting:
         from server.tools_engine import execute_tool
         scenario = get_scenario("easy")
         hosts = list(scenario["hosts"].keys())
-        output, _, _, _ = execute_tool(
+        output, _, _, _, _ = execute_tool(
             "web_crawl", {"host": hosts[0]},
             scenario, hosts, {}, set()
         )
@@ -170,7 +170,7 @@ class TestParameterTesting:
         from server.tools_engine import execute_tool
         scenario = get_scenario("easy")
         hosts = list(scenario["hosts"].keys())
-        output, _, _, reward = execute_tool(
+        output, _, _, reward, _ = execute_tool(
             "test_injection", {"host": hosts[0], "endpoint": "/api/login"},
             scenario, hosts, {}, set()
         )
@@ -182,7 +182,7 @@ class TestParameterTesting:
         from server.tools_engine import execute_tool
         scenario = get_scenario("easy")
         hosts = list(scenario["hosts"].keys())
-        output, _, _, reward = execute_tool(
+        output, _, _, reward, _ = execute_tool(
             "test_injection",
             {"host": hosts[0], "endpoint": "/api/login", "parameter": "username"},
             scenario, hosts, {}, set()
