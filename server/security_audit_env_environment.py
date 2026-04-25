@@ -12,6 +12,7 @@ infrastructure for security vulnerabilities and compliance gaps.
 
 import random
 from copy import deepcopy
+from typing import Optional
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
@@ -92,9 +93,14 @@ class SecurityAuditEnvironment(Environment):
         self._episode_reward = 0.0
         self._last_tool_call = ()
         self._rng = random.Random(seed) if seed is not None else random.Random()
-        # Reset multi-agent state. Attack surface seeds from initial scenario
-        # hosts; will grow as tools reveal targets during the episode.
-        self._attack_surface = set((self._scenario or {}).get("hosts", {}).keys())
+        # Reset multi-agent state. Attack surface seeds from initial *visible*
+        # hosts only — hidden hosts (those gated by `hidden_until`) only join
+        # the attack surface when revealed by tool calls, which is what makes
+        # spawn_subagent meaningful as a delegation primitive.
+        self._attack_surface = {
+            ip for ip, info in (self._scenario or {}).get("hosts", {}).items()
+            if not info.get("hidden_until")
+        }
         self._revealed_targets = []
         self._active_subagents = {}
         self._subagent_outcomes = []
@@ -126,11 +132,43 @@ class SecurityAuditEnvironment(Environment):
         self._state.step_count += 1
         steps_remaining = self._state.max_steps - self._state.step_count
 
+        # Sub-agent budget accounting: if a sub-agent is currently active, every
+        # step (other than the spawn that created it, or its own return_to_parent)
+        # consumes one budget unit. Auto-close on exhaustion so the env never
+        # gets stuck in a sub-context.
+        active_sid = self._active_subagent_id()
+        if active_sid and action.action_type not in ("spawn_subagent",):
+            sub = self._active_subagents[active_sid]
+            sub["steps_used"] += 1
+            if sub["steps_used"] > sub["budget"] and action.action_type != "return_to_parent":
+                # Auto-close as unproductive-by-timeout. Surface this to the
+                # agent so it knows control is back at the parent.
+                sub["status"] = "completed"
+                sub["timeout"] = True
+                findings_added = len(self._submitted_findings) - sub["findings_at_spawn"]
+                productive = findings_added >= 1
+                sub["productive"] = productive
+                self._subagent_outcomes.append({
+                    "spawn_id": active_sid,
+                    "scope": sub["scope"],
+                    "target": sub["target"],
+                    "budget": sub["budget"],
+                    "steps_used": sub["steps_used"],
+                    "findings_added": findings_added,
+                    "productive": productive,
+                    "timeout": True,
+                    "spawn_step": sub["spawn_step"],
+                    "closed_at_step": self._state.step_count,
+                })
+                # The agent's current action still runs at the parent layer.
+                # We just clear the active sub-agent flag here.
+
         self._action_history.append({
             "step": self._state.step_count,
             "action_type": action.action_type,
             "tool_name": action.tool_name,
             "arguments": action.arguments,
+            "spawn_id": self._active_subagent_id(),
         })
 
         if steps_remaining <= 0:
@@ -161,32 +199,153 @@ class SecurityAuditEnvironment(Environment):
                 reward=-0.05,
             )
 
+    def _active_subagent_id(self) -> Optional[str]:
+        """Return the currently-active sub-agent spawn_id, if any."""
+        for sid, info in self._active_subagents.items():
+            if info.get("status") == "active":
+                return sid
+        return None
+
     def _handle_spawn_subagent(self, action: SecurityAuditAction, steps_remaining: int) -> SecurityAuditObservation:
-        """Phase 1 stub. Real registration + budget tracking lands in Phase 3."""
+        """Register a new sub-agent investigation branch.
+
+        Args (in action.arguments):
+            scope:  "host" | "endpoint" | "cred"
+            target: the IP / endpoint / credential identifier to investigate
+            budget: integer step budget for the sub-agent (default 8, capped 15)
+
+        Validates target is in the dynamic attack_surface (either originally
+        scenario-discovered OR revealed by an earlier tool call). Registers
+        the sub-agent and adds the target host to discovered_hosts so the
+        sub-agent can immediately use scoped tools against it.
+        """
+        if self._active_subagent_id() is not None:
+            return self._obs_with_msg(
+                "Cannot spawn — another sub-agent is still active. Call return_to_parent first.",
+                steps_remaining, reward=-0.02,
+            )
+        scope = (action.arguments or {}).get("scope", "host")
+        target = (action.arguments or {}).get("target", "")
+        budget = int((action.arguments or {}).get("budget", 8) or 8)
+        budget = max(2, min(15, budget))  # clamp to a reasonable range
+
+        if scope not in ("host", "endpoint", "cred"):
+            return self._obs_with_msg(
+                f"Invalid scope '{scope}'. Use one of: host | endpoint | cred.",
+                steps_remaining, reward=-0.02,
+            )
+        if not target:
+            return self._obs_with_msg(
+                "spawn_subagent requires a 'target' (e.g. 10.0.2.30 for scope=host).",
+                steps_remaining, reward=-0.02,
+            )
+        if scope == "host" and target not in self._attack_surface:
+            return self._obs_with_msg(
+                f"Target {target} not in current attack_surface. Discover or reveal it first.",
+                steps_remaining, reward=-0.02,
+            )
+
+        spawn_id = f"sub-{len(self._active_subagents) + 1:02d}-{self._state.step_count}"
+        self._active_subagents[spawn_id] = {
+            "scope": scope,
+            "target": target,
+            "budget": budget,
+            "steps_used": 0,
+            "findings_at_spawn": len(self._submitted_findings),
+            "spawn_step": self._state.step_count,
+            "parent_step": self._state.step_count,
+            "status": "active",
+        }
+
+        # If host scope and the target is a revealed-but-not-yet-discovered host,
+        # admit it to discovered_hosts now so sub-agent tools can hit it.
+        if scope == "host" and target not in self._discovered_hosts and target in self._attack_surface:
+            self._discovered_hosts.append(target)
+            host_info = self._scenario.get("hosts", {}).get(target, {}) if self._scenario else {}
+            if host_info.get("ports"):
+                self._discovered_ports[target] = list(host_info.get("ports", []))
+
+        msg = (
+            f"Sub-agent {spawn_id} spawned: scope={scope} target={target} budget={budget} steps. "
+            f"Subsequent actions are scoped to this branch until you call return_to_parent "
+            f"(or budget exhausts)."
+        )
         return SecurityAuditObservation(
-            tool_output="spawn_subagent acknowledged (full implementation in Phase 3).",
-            message="Sub-agent infra is being wired up; this action is a no-op for now.",
+            tool_output=msg,
+            message=msg,
             discovered_hosts=self._discovered_hosts,
             discovered_services=self._discovered_services,
             findings_submitted=len(self._submitted_findings),
             steps_remaining=steps_remaining,
             current_phase=self._current_phase(),
             done=False,
-            reward=0.0,
+            reward=0.01,  # tiny positive — a valid spawn intent; productivity rewarded on return
         )
 
     def _handle_return_to_parent(self, action: SecurityAuditAction, steps_remaining: int) -> SecurityAuditObservation:
-        """Phase 1 stub. Sub-agent termination lands in Phase 3."""
+        """Close the active sub-agent and record its outcome.
+
+        Productivity: a sub-agent is "productive" if it submitted ≥1 finding
+        during its run (we only count final-grader matches at episode end —
+        for the per-step reward, any finding counts to give a fast signal).
+
+        Reward:
+          +0.05 productive
+          -0.05 unproductive (penalises spurious branching)
+        """
+        sid = self._active_subagent_id()
+        if not sid:
+            return self._obs_with_msg(
+                "No active sub-agent to return from. Use spawn_subagent first.",
+                steps_remaining, reward=-0.02,
+            )
+        info = self._active_subagents[sid]
+        findings_added = len(self._submitted_findings) - info["findings_at_spawn"]
+        productive = findings_added >= 1
+        info["status"] = "completed"
+        info["findings_added"] = findings_added
+        info["productive"] = productive
+        info["closed_at_step"] = self._state.step_count
+        self._subagent_outcomes.append({
+            "spawn_id": sid,
+            "scope": info["scope"],
+            "target": info["target"],
+            "budget": info["budget"],
+            "steps_used": info["steps_used"],
+            "findings_added": findings_added,
+            "productive": productive,
+            "spawn_step": info["spawn_step"],
+            "closed_at_step": self._state.step_count,
+        })
+        delegation_reward = 0.05 if productive else -0.05
+        msg = (
+            f"Sub-agent {sid} closed: {findings_added} findings submitted across "
+            f"{info['steps_used']}/{info['budget']} steps. "
+            f"{'PRODUCTIVE' if productive else 'unproductive'} (reward {delegation_reward:+.2f})."
+        )
         return SecurityAuditObservation(
-            tool_output="return_to_parent acknowledged (no active sub-agent context).",
-            message="Use this when finishing a sub-agent investigation.",
+            tool_output=msg,
+            message=msg,
             discovered_hosts=self._discovered_hosts,
             discovered_services=self._discovered_services,
             findings_submitted=len(self._submitted_findings),
             steps_remaining=steps_remaining,
             current_phase=self._current_phase(),
             done=False,
-            reward=0.0,
+            reward=delegation_reward,
+        )
+
+    def _obs_with_msg(self, msg: str, steps_remaining: int, reward: float = 0.0) -> SecurityAuditObservation:
+        return SecurityAuditObservation(
+            tool_output=msg,
+            message=msg,
+            discovered_hosts=self._discovered_hosts,
+            discovered_services=self._discovered_services,
+            findings_submitted=len(self._submitted_findings),
+            steps_remaining=steps_remaining,
+            current_phase=self._current_phase(),
+            done=False,
+            reward=reward,
         )
 
     @property
@@ -307,6 +466,11 @@ class SecurityAuditEnvironment(Environment):
                 current_phase=self._current_phase(), done=False, reward=-0.02,
             )
 
+        # Tag finding with current sub-agent context (if any) so the grader's
+        # Delegation Score can credit sub-agent productivity correctly.
+        active_sid = self._active_subagent_id()
+        if active_sid:
+            finding = {**finding, "_spawn_id": active_sid, "_parent_step": self._state.step_count}
         self._submitted_findings.append(finding)
 
         # Match using same logic as grader for consistency

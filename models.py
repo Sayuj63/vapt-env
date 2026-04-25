@@ -29,6 +29,8 @@ class SecurityAuditAction(Action):
         "list_tools",
         "use_tool",
         "submit_finding",
+        "spawn_subagent",
+        "return_to_parent",
         "generate_report",
     ] = Field(..., description="Type of action to take")
 
@@ -51,10 +53,14 @@ class LLMJsonAction(BaseModel):
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
-    action_type: Literal["list_tools", "use_tool", "submit_finding", "generate_report"] = Field(
-        ...,
-        description="Which environment action to take",
-    )
+    action_type: Literal[
+        "list_tools",
+        "use_tool",
+        "submit_finding",
+        "spawn_subagent",
+        "return_to_parent",
+        "generate_report",
+    ] = Field(..., description="Which environment action to take")
     tool_name: Optional[str] = Field(
         default=None,
         description="Tool name when action_type is use_tool",
