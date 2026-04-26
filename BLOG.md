@@ -14,6 +14,14 @@ tags:
 
 # We tried to give every security team a tireless junior pentester. Here's the messy story of how a 3B model ended up doing what a 120B model couldn't.
 
+## 🎬 Founders intro (90-sec video)
+
+[![Watch the founders intro on YouTube](https://img.youtube.com/vi/_w3uMlr_FCs/maxresdefault.jpg)](https://youtu.be/_w3uMlr_FCs?si=LqcuZZ3TZf9wID5k)
+
+**▶ [Watch on YouTube](https://youtu.be/_w3uMlr_FCs?si=LqcuZZ3TZf9wID5k)** — 90 seconds. The reasoning gap, the multi-agent primitive, the 6.4× lift, all in one shot.
+
+---
+
 There's a stat we kept coming back to: **pen testers spend 40% of their time writing reports**, not finding vulnerabilities. The global market is $2.7B. There are 4.8 million unfilled cybersecurity positions. Attackers break out in 29 minutes; defenders patch in 209 days. The asymmetry is brutal, and it's getting worse.
 
 We didn't want to "replace" auditors. We wanted to give them an **always-on junior** — something that could chew through the boring 80% of an audit so the humans could focus on the 20% that actually requires judgement. A teammate that runs the same SQL injection check on a thousand endpoints without complaining, files clean reports, and gets out of the way when the human takes over.

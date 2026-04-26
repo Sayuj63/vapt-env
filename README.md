@@ -23,6 +23,12 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 
 > **An OpenEnv-compliant penetration-testing environment that teaches a 3-billion-parameter language model to do real security audit reasoning. Built for the Meta PyTorch OpenEnv Hackathon × SST Bangalore 2026.**
 
+## 🎬 Founders intro (90-second video)
+
+**▶ [Watch on YouTube](https://youtu.be/_w3uMlr_FCs?si=LqcuZZ3TZf9wID5k)** — the reasoning gap, the multi-agent primitive, and the 6.4× lift in 90 seconds.
+
+[![Watch on YouTube](https://img.youtube.com/vi/_w3uMlr_FCs/maxresdefault.jpg)](https://youtu.be/_w3uMlr_FCs?si=LqcuZZ3TZf9wID5k)
+
 ## 🎯 Headline result
 
 **Llama 3.2 3B average score: 0.075 → 0.482 (6.4× lift) post-GRPO.** Beats GPT-OSS-120B (0.276) by **1.7×** with a model **40× smaller**. Real W&B reward curve. No synthetic data anywhere.
@@ -36,6 +42,7 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 | 🤗 **Trained LoRA adapter** | https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo |
 | 📊 **W&B training run (real, public)** | https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s |
 | 📓 **Reproduction notebook (Colab)** | [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb) |
+| 🎬 **Founders intro (90-sec YouTube video)** | https://youtu.be/_w3uMlr_FCs?si=LqcuZZ3TZf9wID5k |
 | 📝 **Hero-arc blog (full story)** | [`BLOG.md`](./BLOG.md) |
 | 🐙 **GitHub source** | https://github.com/Sayuj63/vapt-env |
 
