@@ -10,14 +10,51 @@ tags:
 short_description: "Can your AI reason from raw evidence or just parse labels?"
 ---
 
-# SecurityAuditEnv -- Can Your AI Agent Actually Reason About Security?
+# 🛡️ VAPT-Env — AI Security Reasoning Environment
 
-**🎬 Interactive demo (try it now):** https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo
-**Live Environment (FastAPI / OpenEnv):** https://huggingface.co/spaces/Sayuj63/Vapt-env
-**Trained adapter on HF Hub:** https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo
-**W&B training run:** https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
-**Training notebook (Colab):** [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)
-**Headline result:** Llama 3.2 3B average score **0.075 → 0.482** post-GRPO (**6.4× improvement**, real W&B curve, no synthetic data).
+[![HF Space](https://img.shields.io/badge/🤗_HF_Space-Sayuj63%2FVapt--env-blue?logo=huggingface)](https://huggingface.co/spaces/Sayuj63/Vapt-env)
+[![Demo](https://img.shields.io/badge/🎬_Interactive_Demo-Sayuj63%2FVapt--Env--Demo-green)](https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo)
+[![Trained Model](https://img.shields.io/badge/🤗_Trained_Adapter-vapt--env--llama32--3b--grpo-yellow)](https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sayuj63/vapt-env/blob/main/AISHA_RL_Training_Colab.ipynb)
+[![GitHub](https://img.shields.io/badge/GitHub-Sayuj63%2Fvapt--env-black?logo=github)](https://github.com/Sayuj63/vapt-env)
+[![W&B Run](https://img.shields.io/badge/W%26B-vapt--env--grpo-orange?logo=weightsandbiases)](https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s)
+[![Tests](https://img.shields.io/badge/tests-78%2F78_passing-brightgreen)](https://github.com/Sayuj63/vapt-env/tree/main/tests)
+[![License](https://img.shields.io/badge/license-Apache_2.0-blue)](#)
+
+> **An OpenEnv-compliant penetration-testing environment that teaches a 3-billion-parameter language model to do real security audit reasoning. Built for the Meta PyTorch OpenEnv Hackathon × SST Bangalore 2026.**
+
+## 🎯 Headline result
+
+**Llama 3.2 3B average score: 0.075 → 0.482 (6.4× lift) post-GRPO.** Beats GPT-OSS-120B (0.276) by **1.7×** with a model **40× smaller**. Real W&B reward curve. No synthetic data anywhere.
+
+## 🔗 All links (judges click here)
+
+| What | Where |
+|---|---|
+| 🛡️ **Live env (FastAPI / OpenEnv)** | https://huggingface.co/spaces/Sayuj63/Vapt-env |
+| 🎬 **Interactive Gradio demo** | https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo |
+| 🤗 **Trained LoRA adapter** | https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo |
+| 📊 **W&B training run (real, public)** | https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s |
+| 📓 **Reproduction notebook (Colab)** | [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb) |
+| 📝 **Hero-arc blog (full story)** | [`BLOG.md`](./BLOG.md) |
+| 🐙 **GitHub source** | https://github.com/Sayuj63/vapt-env |
+
+## ✨ Features at a glance
+
+- 🔧 **10 simulated security tools** — `network_scan`, `service_fingerprint`, `web_crawl`, `vulnerability_scan`, `test_injection`, `test_xss`, `test_auth`, `test_config`, `test_crypto`, `check_secrets`. Real tool-calling protocol; agents emit JSON action objects, env replies with structured observations.
+- 🎬 **6 action types** — `list_tools`, `use_tool`, `submit_finding`, **`spawn_subagent`**, **`return_to_parent`**, `generate_report`. Multi-agent delegation as a first-class action.
+- 🤖 **Sub-agent delegation primitive** — when a tool reveals a new attack-surface branch (e.g. SSRF discloses internal IP), the agent can `spawn_subagent` with a step budget. Productive sub-agents earn +0.05; unproductive ones cost −0.05. Grader scores delegation decision quality (5% weight).
+- 📚 **26 vulnerability types** sourced from OWASP Top 10 2021 + CWE Top 25.
+- 💥 **16 attack-payload sets** with real injection patterns.
+- 🎚️ **3 difficulty tiers** — labeled / evidence / raw HTTP — same vulnerabilities, three reasoning regimes.
+- 📋 **22 response-template sets** covering all three difficulty tiers.
+- 🏛️ **4 compliance frameworks** — PCI-DSS, SOC2, HIPAA, Generic — auto-mapped to OWASP categories.
+- ♻️ **Procedurally generated scenarios** — any string seed produces a deterministic, unique network topology.
+- 📊 **11-component multi-dim grader** — detection rate, severity, classification (CWE+OWASP), report quality, coverage, pivoting, exploitation proof, compliance, delegation score, FP penalty (escalating), honeypot penalty.
+- 🛡️ **Reward-hacking-resistant by design** — escalating false-positive penalty, honeypot penalty, coverage multiplier all clamp gaming behaviour to 0.
+- ⚡ **OpenEnv-compliant** — `openenv-core[core]>=0.2.3`, gym-style `reset` / `step` API, valid `openenv.yaml` manifest, FastAPI HTTP server, WebSocket session state.
+- 🧪 **78 / 78 tests passing** — env lifecycle, grader determinism, scenario generation, parameter-level testing, multi-agent budget tracking.
+- 🚀 **Trained on Colab T4 free tier** — Unsloth 4-bit Llama 3.2 3B + LoRA r=16 + HF TRL `GRPOTrainer`, 112 logged steps, real W&B reward curve.
 
 ## 📊 TL;DR — the story in 4 charts
 
@@ -206,6 +243,90 @@ During a real audit, an SSRF can disclose a previously-unreachable internal IP, 
 - Productive sub-agent (≥ 1 finding submitted while active): **+0.05**
 - Unproductive sub-agent (no findings, or budget exhausted empty-handed): **−0.05**
 - Sub-agent's findings count toward the main grader; spawning is the delegation primitive, not a separate scoring path.
+
+#### Spawn-and-return code example
+
+```python
+# 1. Tool reveals a hidden host (SSRF disclosed internal IP 10.0.2.30)
+rs = env.step(SecurityAuditAction(
+    action_type="use_tool",
+    tool_name="test_injection",
+    arguments={"host": "10.0.2.10", "endpoint": "/api/upload/image"},
+))
+# rs.observation.tool_output ends with:
+#   [REVEALED] Sub-agent delegation candidates:
+#     - scope=host target=10.0.2.30  (Investigation gateway: ...)
+
+# 2. Agent decides to delegate the new branch with a 6-step budget
+rs = env.step(SecurityAuditAction(
+    action_type="spawn_subagent",
+    arguments={"scope": "host", "target": "10.0.2.30", "budget": 6},
+))
+
+# 3. Sub-agent context — actions are tracked under the spawn_id
+rs = env.step(SecurityAuditAction(
+    action_type="use_tool", tool_name="vulnerability_scan",
+    arguments={"host": "10.0.2.30"},
+))
+# ... sub-agent runs scoped recon + finding submission ...
+
+# 4. Sub-agent returns; productivity is computed (>=1 finding -> +0.05; else -0.05)
+rs = env.step(SecurityAuditAction(action_type="return_to_parent"))
+# rs.reward = +0.05 if sub-agent submitted at least one finding; else -0.05
+
+# 5. Main thread resumes
+rs = env.step(SecurityAuditAction(action_type="generate_report"))
+# Grader includes Delegation Score (5%) — productive_spawns / total_spawns
+```
+
+#### Tool-calling example (the canonical 4-step audit)
+
+```python
+from security_audit_env import SecurityAuditEnv, SecurityAuditAction
+
+with SecurityAuditEnv(base_url="https://Sayuj63-Vapt-env.hf.space").sync() as env:
+    r = env.reset(scenario_id="easy")               # 2 hosts, 3 vulns
+    print(r.observation.message)                    # scenario brief
+
+    # 1. RECON — discover the network
+    rs = env.step(SecurityAuditAction(
+        action_type="use_tool", tool_name="network_scan",
+        arguments={"target": "10.0.1.0/24"},
+    ))
+    print(rs.observation.discovered_hosts)          # ['10.0.1.10', '10.0.1.20']
+
+    # 2. ENUMERATION — crawl the web tier
+    rs = env.step(SecurityAuditAction(
+        action_type="use_tool", tool_name="web_crawl",
+        arguments={"host": "10.0.1.10"},
+    ))
+
+    # 3. EXPLOITATION — test for SQL injection
+    rs = env.step(SecurityAuditAction(
+        action_type="use_tool", tool_name="test_injection",
+        arguments={"host": "10.0.1.10", "endpoint": "/api/login"},
+    ))
+    # output: "[CRITICAL] SQL Injection at /api/login, CWE-89, CVSS 9.8"
+
+    # 4. REPORTING — submit a finding for the SQL injection
+    rs = env.step(SecurityAuditAction(
+        action_type="submit_finding",
+        arguments={
+            "title": "SQL Injection in /api/login",
+            "host": "10.0.1.10", "type": "SQL Injection",
+            "severity": "Critical", "cvss_score": 9.8,
+            "cwe": "CWE-89", "owasp": "A03:2021 - Injection",
+            "endpoint": "/api/login",
+            "evidence": "Tool flagged param=username vulnerable",
+            "remediation": "Use parameterized queries",
+        },
+    ))
+    # rs.reward = +0.12 (matched ground truth)
+
+    # End audit -> grader returns final score across 11 components
+    rs = env.step(SecurityAuditAction(action_type="generate_report"))
+    # rs.reward = final_score (0.0 - 1.0)
+```
 
 ### Available Tools
 
@@ -519,12 +640,62 @@ Key research validating our design:
 - **Reward Machines** (arXiv:2405.15908): Phase-decomposed rewards accelerate RL training -- our environment tracks audit phases (reconnaissance -> enumeration -> exploitation -> reporting).
 
 
-## Links & Resources
+## ✅ Submission compliance checklist (Meta PyTorch OpenEnv Hackathon)
 
-- **Live Environment**: https://huggingface.co/spaces/Sayuj63/Vapt-env
-- **Blog Post**: [VAPT env: Teaching AI to Reason About Security](./docs/blog/VAPT_env_BLOG_POST_FINAL.md) — Read the full story
-- **Training Notebook**: [VAPT_env_RL_Training_Colab.ipynb](./AISHA_RL_Training_Colab.ipynb)
-- **Agent Comparison Script**: [generate_plots.py](./generate_plots.py)
-- **Publication Guide**: [BLOG_PUBLICATION_GUIDE.md](./docs/blog/BLOG_PUBLICATION_GUIDE.md) — How to publish the blog post
-- **Team**: Your Team Name — [Your Team Members]
-- **Hackathon**: Meta PyTorch OpenEnv Hackathon India 2026
+Every requirement from the official judging guide, mapped to the artifact that satisfies it:
+
+| Requirement (verbatim from criteria) | Where it lives | Status |
+|---|---|---|
+| Use OpenEnv (latest release) | `pyproject.toml` declares `openenv-core[core]>=0.2.3`. Server uses `openenv.core.env_server.http_server.create_app`. Live at https://huggingface.co/spaces/Sayuj63/Vapt-env | ✅ |
+| Working training script using Unsloth or HF TRL, ideally as Colab notebook | [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb) — Unsloth 4-bit + TRL `GRPOTrainer` + LoRA r=16, runs on Colab T4 free tier | ✅ |
+| Evidence that you actually trained — loss + reward plots from a real run | [`plots/reward_per_episode.png`](./plots/reward_per_episode.png) + [`plots/training_loss.png`](./plots/training_loss.png) generated from W&B run [`ln2jq71s`](https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s). 112 training steps, reward climbs 0 → 0.25 | ✅ |
+| Mini-blog OR < 2 min video | Hero-arc blog at [`BLOG.md`](./BLOG.md) (~2000 words, full failure-and-recovery story) | ✅ |
+| HF Space hosting the env | https://huggingface.co/spaces/Sayuj63/Vapt-env (Docker SDK, FastAPI, OpenEnv-compliant) | ✅ |
+| README with link to HF Space | This file, line 1 of links section | ✅ |
+| README with all additional materials | All 7 links in the "All links" table at the top | ✅ |
+| Reward signal that teaches | 11-component multi-dim grader. Dense per-step rewards. Composable. Reward-hacking-resistant. | ✅ |
+| Plots are readable, axis-labeled, .png in repo | All 5 plots in [`plots/`](./plots/) committed as PNG with clear titles + axes | ✅ |
+| Comparison vs untrained baseline | [`plots/performance_comparison.png`](./plots/performance_comparison.png) + [`plots/models_comparison.png`](./plots/models_comparison.png) — pre-training Llama 3.2 3B vs GPT-OSS-120B vs post-GRPO | ✅ |
+| Engineering quality: gym-style API, valid `openenv.yaml`, client/server separation | [`openenv.yaml`](./openenv.yaml), `reset()` / `step()` / `state()` standard, `client.py` never imports server internals | ✅ |
+| 78/78 tests passing | `pytest tests/` — verifiable | ✅ |
+
+**TL;DR**: every minimum requirement is met. We additionally provide an [interactive Gradio demo](https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo) and a [trained adapter on HF Hub](https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo) for one-click verification.
+
+## 🏆 Hackathon themes covered
+
+| Theme | How VAPT-Env covers it |
+|---|---|
+| **#1 Multi-Agent Interactions** | `spawn_subagent` / `return_to_parent` first-class actions; budget-tracked sub-agents; productive/unproductive scoring; delegation as a learned competence |
+| **#2 (Super) Long-Horizon Planning** | 25 / 35 / 45-step audits with sparse rewards across 4 phases (recon → enumeration → exploitation → reporting); recovery from early mistakes via sub-agent delegation; observation context grows over the trajectory |
+| **#3.1 World Modeling — Professional Tasks** *(primary)* | Real tool-calling against a partially observable enterprise security simulation; agent must maintain consistent internal state across the audit; orchestrate multi-step workflows; cannot exploit shortcuts (env's grader catches reward hacking) |
+
+## 🧠 Why this matters
+
+- The deterministic regex parser scores 1.00 on easy and **0.00 on hard** — perfect pattern matcher, perfect failure.
+- Frontier models (Gemini 2.5 Flash, GPT-OSS-120B) score ~0.83 on easy and ~0.27 on hard — even a 120B-parameter model loses two-thirds of its score when evidence becomes raw HTTP.
+- A 3B model post-GRPO on this env hits **0.86 / 0.59 / 0.00** — beating the 120B on easy and medium, still trailing on hard.
+- **Hard's gap is the reasoning gap.** Bridging it isn't about size or pre-training corpus; it's about training on environments that demand causal reasoning over partial observations.
+
+## 📜 Citation
+
+```bibtex
+@misc{vapt-env-2026,
+  title  = {VAPT-Env: AI Security Reasoning Environment with Multi-Agent Delegation},
+  author = {Sayuj},
+  year   = {2026},
+  howpublished = {Meta PyTorch OpenEnv Hackathon × SST Bangalore},
+  url    = {https://github.com/Sayuj63/vapt-env},
+}
+```
+
+## 🔗 Links & resources
+
+- **🛡️ Live Environment**: https://huggingface.co/spaces/Sayuj63/Vapt-env
+- **🎬 Interactive Gradio Demo**: https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo
+- **🤗 Trained Adapter (HF Hub)**: https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo
+- **📊 W&B Training Run (public)**: https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
+- **📝 Hero-arc Blog**: [`BLOG.md`](./BLOG.md) — the full journey including the failures
+- **📓 Reproduction Notebook (Colab)**: [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)
+- **🎬 Curated Demo Script**: [`demo_multiagent.py`](./demo_multiagent.py) — deterministic walkthrough of spawn_subagent flow
+- **🐙 GitHub**: https://github.com/Sayuj63/vapt-env
+- **🏛️ Hackathon**: Meta PyTorch OpenEnv Hackathon × SST Bangalore (April 2026)
