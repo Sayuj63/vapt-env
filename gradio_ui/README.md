@@ -4,7 +4,7 @@ emoji: "🛡️"
 colorFrom: green
 colorTo: indigo
 sdk: gradio
-sdk_version: "5.4.0"
+sdk_version: "5.49.0"
 app_file: app.py
 pinned: false
 short_description: "Live demo: Llama 3.2 3B before vs after GRPO on VAPT-Env"
