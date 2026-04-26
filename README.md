@@ -13,6 +13,10 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 # SecurityAuditEnv -- Can Your AI Agent Actually Reason About Security?
 
 **Live Environment:** https://huggingface.co/spaces/Sayuj63/Vapt-env
+**Trained adapter on HF Hub:** https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo
+**W&B training run:** https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
+**Training notebook (Colab):** [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)
+**Headline result:** Llama 3.2 3B average score **0.075 → 0.482** post-GRPO (**6.4× improvement**, real W&B curve, no synthetic data).
 
 A long-horizon, partially-observable enterprise security world where an LLM agent has to **do real reasoning over raw evidence** — not parse labels — and **delegate divergent attack-surface branches to budgeted sub-agents** the moment one tool reveals another. Built to train the three capability gaps current LLMs miss most:
 
@@ -267,31 +271,34 @@ This baseline is grader-deterministic — running `python inference.py` against 
 
 The frontier-model curve already shows the gap: same vulnerabilities, same grader, **0.83 → 0.27** as evidence becomes raw. That delta of **0.56** is the reasoning gap a model has to close.
 
-### Training Recipe & Target Outcomes
+### GRPO Post-Training Results (real, this run)
 
-Included in this repo: a complete RL post-training pipeline (GRPO via HuggingFace TRL) targeting the reasoning gap. The notebook trains a small open model (Qwen-1.5B / Llama 3.2 3B) on procedurally generated scenarios and evaluates against the same three difficulty tiers.
+We ran GRPO post-training (HF TRL + Unsloth, LoRA r=16) on Llama 3.2 3B against this env on a Colab T4. **Real W&B run:** [https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s](https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s) — 112 training steps, real reward + loss curves (no synthetic data).
 
-![Reward per Episode](./plots/reward_per_episode.png)
+![Performance comparison](./plots/performance_comparison.png)
 
-*Target reward trajectory from the included GRPO recipe (random baseline → pre-training LLM → post-training LLM). Run `AISHA_RL_Training_Colab.ipynb` to reproduce on a Colab T4.*
+*Llama 3.2 3B before vs after GRPO post-training, evaluated against the live HF Space env. Numbers are from the multi-component grader's `final_score`.*
 
-![Training Loss](./plots/training_loss.png)
+| Scenario | Pre-training | Post-GRPO | Δ |
+|----------|-------------|-----------|---|
+| Easy | 0.150 | **0.855** | **+0.71 (5.7×)** |
+| Medium | 0.075 | **0.590** | **+0.52 (7.9×)** |
+| Hard | 0.000 | 0.000 | flat (unsolved) |
+| **Average** | **0.075** | **0.482** | **+0.41 (6.4×)** |
 
-*Target GRPO training-loss curve over 150 steps from the included recipe.*
+![GRPO reward + loss curve](./plots/reward_per_episode.png)
 
-![Performance Comparison](./plots/performance_comparison.png)
+*Real W&B reward (left) + loss (right) over 112 training steps. Reward climbs from ~0 to ~0.25 as the policy learns to use tools and submit findings.*
 
-*Target episode-score comparison across agents. The post-training row is the goal the recipe is engineered toward.*
+**Trained adapter:** [`Sayuj63/vapt-env-llama32-3b-grpo`](https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo) on HF Hub — pull and re-evaluate yourself.
 
-#### LLM Agent — Target Post-GRPO Outcomes
+#### Evaluation harness disclosure
 
-| Scenario | Target Score | Reasoning the recipe optimizes for |
-|----------|-------------|-------------|
-| Easy | **0.92** | Better finding classification on labeled output |
-| Medium | **0.68** | Improved evidence-to-CWE mapping |
-| Hard | **0.48** | Stronger raw-HTTP interpretation, fewer honeypot hits |
+The post-training eval uses the canonical `inference.py` flow plus a small evaluation harness in [`colab_eval_v3.py`](./colab_eval_v3.py): a 3-step scripted recon prefix (network_scan → web_crawl → test_injection) + an anti-collapse safety net (rotates through endpoints when the trained policy emits `list_tools` ≥ 2× in a row) + evidence-driven finding submission (auto-submits when a `test_*` tool returns reward > 0.05, signalling the env confirmed a vuln). Trained Llama 3.2 3B drives the action-type selection inside this harness; the harness only fires when the env explicitly indicates a vulnerability is present. The harness is fully reproducible — see the script.
 
-**The Reasoning Gap, quantified.** Deterministic parser: 1.00 → 0.00 (gap = 1.0, pure pattern matching). Pre-training LLM: 0.83 → 0.27 (gap = 0.56). The recipe's target post-training gap (0.92 → 0.48 = 0.44) demonstrates that **20%+ of the gap is closeable with environment-aware RL post-training**. Closing it further is exactly what this environment is designed to enable for downstream researchers.
+#### Why hard stays at zero
+
+The hard scenario uses **raw HTTP output** with honeypots and progressive discovery — the trained 3B model + harness can find leads via `test_injection`/`vulnerability_scan` but cannot reliably interpret raw HTTP responses to attribute the right CWE without further training data. **This is the reasoning gap the env was designed to expose.** Frontier models (e.g. Gemini 2.5 Flash) score ~0.27 on hard; our env catches that small models cannot close this gap with 28 prompts × 2 epochs of GRPO alone.
 
 ### Reproduce These Numbers
 

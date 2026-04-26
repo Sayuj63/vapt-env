@@ -1,0 +1,36 @@
+{
+  "model": "meta-llama/llama-3.2-3b-instruct",
+  "env_url": "https://Sayuj63-Vapt-env.hf.space",
+  "n_trajectories": 1,
+  "scenarios": [
+    "easy"
+  ],
+  "mean_final_score": {
+    "easy": 0.0
+  },
+  "schema": [
+    "episode_id",
+    "scenario_id",
+    "model",
+    "max_steps",
+    "n_steps",
+    "cumulative_reward",
+    "final_score",
+    "captured_at",
+    "env_url",
+    "steps[*].step",
+    "steps[*].observation_text",
+    "steps[*].completion_raw",
+    "steps[*].action_type",
+    "steps[*].tool_name",
+    "steps[*].arguments",
+    "steps[*].reward",
+    "steps[*].cumulative_reward",
+    "steps[*].done",
+    "steps[*].discovered_hosts",
+    "steps[*].findings_submitted",
+    "steps[*].current_phase",
+    "steps[*].parse_error"
+  ],
+  "captured_at": "2026-04-25T22:12:46.201219+00:00"
+}

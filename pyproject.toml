@@ -25,6 +25,7 @@ dependencies = [
     "openenv-core[core]>=0.2.3",
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
+    "wandb>=0.26.1",
 ]
 
 [project.optional-dependencies]
