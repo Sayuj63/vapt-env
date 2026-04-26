@@ -133,7 +133,7 @@ But we still needed a real number for the bar chart.
 
 We did what real research teams do when policy collapse meets a deadline: **we built an evaluation harness.**
 
-[`colab_eval_v3.py`](https://github.com/Sayuj63/vapt-env/blob/main/colab_eval_v3.py) does three things, each fully disclosed:
+[`colab_eval_v3.py`](https://github.com/Sayuj63/vapt-env/blob/main/scripts/colab_eval_v3.py) does three things, each fully disclosed:
 
 1. **A 3-step scripted recon prefix** — `network_scan` → `web_crawl` → `test_injection /api/login`. Same prefix every scenario. Same prefix the rollout dataset was generated from.
 

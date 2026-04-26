@@ -87,7 +87,7 @@ ENV_URL="https://Sayuj63-Vapt-env.hf.space" python inference.py
 
 ## Eval methodology
 
-The eval uses an evaluation harness ([`colab_eval_v3.py`](https://github.com/Sayuj63/vapt-env/blob/main/colab_eval_v3.py)) layered on top of the trained adapter:
+The eval uses an evaluation harness ([`colab_eval_v3.py`](https://github.com/Sayuj63/vapt-env/blob/main/scripts/colab_eval_v3.py)) layered on top of the trained adapter:
 
 - 3-step scripted recon prefix (network_scan → web_crawl → test_injection on `/api/login`)
 - Anti-collapse safety net (rotates through other endpoints when the trained policy emits `list_tools` ≥ 2× in a row)

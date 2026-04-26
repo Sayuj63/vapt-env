@@ -458,7 +458,7 @@ We ran GRPO post-training (HF TRL + Unsloth, LoRA r=16) on Llama 3.2 3B against 
 
 #### Evaluation harness disclosure
 
-The post-training eval uses the canonical `inference.py` flow plus a small evaluation harness in [`colab_eval_v3.py`](./colab_eval_v3.py): a 3-step scripted recon prefix (network_scan → web_crawl → test_injection) + an anti-collapse safety net (rotates through endpoints when the trained policy emits `list_tools` ≥ 2× in a row) + evidence-driven finding submission (auto-submits when a `test_*` tool returns reward > 0.05, signalling the env confirmed a vuln). Trained Llama 3.2 3B drives the action-type selection inside this harness; the harness only fires when the env explicitly indicates a vulnerability is present. The harness is fully reproducible — see the script.
+The post-training eval uses the canonical `inference.py` flow plus a small evaluation harness in [`colab_eval_v3.py`](./scripts/colab_eval_v3.py): a 3-step scripted recon prefix (network_scan → web_crawl → test_injection) + an anti-collapse safety net (rotates through endpoints when the trained policy emits `list_tools` ≥ 2× in a row) + evidence-driven finding submission (auto-submits when a `test_*` tool returns reward > 0.05, signalling the env confirmed a vuln). Trained Llama 3.2 3B drives the action-type selection inside this harness; the harness only fires when the env explicitly indicates a vulnerability is present. The harness is fully reproducible — see the script.
 
 #### Why hard stays at zero
 
@@ -696,6 +696,6 @@ Every requirement from the official judging guide, mapped to the artifact that s
 - **📊 W&B Training Run (public)**: https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
 - **📝 Hero-arc Blog**: [`BLOG.md`](./BLOG.md) — the full journey including the failures
 - **📓 Reproduction Notebook (Colab)**: [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)
-- **🎬 Curated Demo Script**: [`demo_multiagent.py`](./demo_multiagent.py) — deterministic walkthrough of spawn_subagent flow
+- **🎬 Curated Demo Script**: [`demo_multiagent.py`](./examples/demo_multiagent.py) — deterministic walkthrough of spawn_subagent flow
 - **🐙 GitHub**: https://github.com/Sayuj63/vapt-env
 - **🏛️ Hackathon**: Meta PyTorch OpenEnv Hackathon × SST Bangalore (April 2026)
