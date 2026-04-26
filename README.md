@@ -12,7 +12,8 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 
 # SecurityAuditEnv -- Can Your AI Agent Actually Reason About Security?
 
-**Live Environment:** https://huggingface.co/spaces/Sayuj63/Vapt-env
+**🎬 Interactive demo (try it now):** https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo
+**Live Environment (FastAPI / OpenEnv):** https://huggingface.co/spaces/Sayuj63/Vapt-env
 **Trained adapter on HF Hub:** https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo
 **W&B training run:** https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
 **Training notebook (Colab):** [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)

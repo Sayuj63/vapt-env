@@ -106,6 +106,7 @@ _LANDING_HTML = """<!doctype html>
 
 <h2>Quick links</h2>
 <ul>
+  <li><a href="https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo">🎬 <strong>Interactive demo</strong> (Gradio)</a> — pick a scenario, watch the trained agent act, see the grader breakdown live</li>
   <li><a href="https://github.com/Sayuj63/vapt-env">📦 GitHub repo</a> — env + grader + 78 tests + Colab notebook</li>
   <li><a href="https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo">🤗 Trained adapter on HF Hub</a> — Llama 3.2 3B + LoRA r=16</li>
   <li><a href="https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s">📊 W&amp;B training run</a> — real reward curve, 112 GRPO steps</li>

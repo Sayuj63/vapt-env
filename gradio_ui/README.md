@@ -1,7 +1,7 @@
 ---
 title: VAPT-Env Live
 emoji: "🛡️"
-colorFrom: teal
+colorFrom: green
 colorTo: indigo
 sdk: gradio
 sdk_version: "5.4.0"
