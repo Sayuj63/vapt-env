@@ -18,6 +18,30 @@ short_description: "Can your AI reason from raw evidence or just parse labels?"
 **Training notebook (Colab):** [`AISHA_RL_Training_Colab.ipynb`](./AISHA_RL_Training_Colab.ipynb)
 **Headline result:** Llama 3.2 3B average score **0.075 → 0.482** post-GRPO (**6.4× improvement**, real W&B curve, no synthetic data).
 
+## 📊 TL;DR — the story in 4 charts
+
+![Iteration journey](./plots/journey_progression.png)
+
+*Average score across 5 iterations — from raw baseline (0.26) to GRPO-trained Llama 3.2 3B (**0.48**), beating GPT-OSS-120B by 1.7×.*
+
+![Models compared](./plots/models_comparison.png)
+
+*Per-scenario comparison — our trained 3B model beats the 120B frontier baseline on every difficulty tier.*
+
+![Pre vs post bar chart](./plots/performance_comparison.png)
+
+*Llama 3.2 3B before vs after GRPO post-training — easy 0.15 → 0.86, medium 0.075 → 0.59, average **6.4× lift**.*
+
+![Real W&B reward + loss](./plots/reward_per_episode.png)
+
+*Real W&B reward curve over 112 GRPO training steps — reward climbs from ~0 to ~0.25 as the policy learns to use tools and submit findings. [Live W&B run](https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s).*
+
+![Multi-agent demo](./plots/demo_multiagent.png)
+
+*Multi-agent demo trace (medium scenario): SSRF on `10.0.2.10` reveals hidden host `10.0.2.30` → agent spawns a sub-agent (shaded region) → sub-agent finds Jenkins RCE → returns to parent → final grader 0.60.*
+
+---
+
 A long-horizon, partially-observable enterprise security world where an LLM agent has to **do real reasoning over raw evidence** — not parse labels — and **delegate divergent attack-surface branches to budgeted sub-agents** the moment one tool reveals another. Built to train the three capability gaps current LLMs miss most:
 
 1. **World modeling under partial observability** — hidden hosts, honeypots, evidence that ranges from labeled (`[CRITICAL] SQL Injection, CWE-89`) to fully raw (`POST /login: 1000 reqs in 18.7s, 0 blocked`).
