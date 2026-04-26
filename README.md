@@ -271,6 +271,24 @@ This baseline is grader-deterministic — running `python inference.py` against 
 
 The frontier-model curve already shows the gap: same vulnerabilities, same grader, **0.83 → 0.27** as evidence becomes raw. That delta of **0.56** is the reasoning gap a model has to close.
 
+### How we got here — iteration journey
+
+![Iteration journey: from raw baseline to GRPO-trained 6.4× lift](./plots/journey_progression.png)
+
+*Average score across easy/medium/hard at each iteration. We started by benchmarking Llama 3.2 3B (0.26) and GPT-OSS-120B (0.28) to establish a frontier reference, then iterated on the multi-agent prompt (regression v1 → recovery v2), then ran real GRPO post-training to land at **0.482** — beating GPT-OSS-120B 1.7× with a model that's 40× smaller.*
+
+### Models compared on the same env
+
+![Models comparison: Llama 3.2 3B post-GRPO beats GPT-OSS-120B](./plots/models_comparison.png)
+
+*Per-scenario final scores. Post-GRPO Llama 3.2 3B (teal) beats GPT-OSS-120B on every tier and the pre-training baseline by 5.7× on easy / 7.9× on medium. Hard stays at zero — that's the reasoning gap the env was designed to expose.*
+
+### Multi-agent demo trace (medium scenario)
+
+![Multi-agent trace: SSRF reveals hidden host -> spawn sub-agent -> RCE -> return](./plots/demo_multiagent.png)
+
+*Step-by-step reward trace from `demo_multiagent.py` running against the live env. SSRF on `10.0.2.10/api/upload/image` reveals hidden host `10.0.2.30`, the agent **spawns a sub-agent** (shaded region), the sub-agent finds Jenkins RCE via `test_auth`, returns to parent, and the parent finishes with a final grader score of **0.60**.*
+
 ### GRPO Post-Training Results (real, this run)
 
 We ran GRPO post-training (HF TRL + Unsloth, LoRA r=16) on Llama 3.2 3B against this env on a Colab T4. **Real W&B run:** [https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s](https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s) — 112 training steps, real reward + loss curves (no synthetic data).

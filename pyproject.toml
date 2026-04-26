@@ -26,6 +26,8 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "wandb>=0.26.1",
+    "gradio>=6.11.0",
+    "matplotlib>=3.10.9",
 ]
 
 [project.optional-dependencies]
