@@ -117,6 +117,7 @@ Built for the **Meta PyTorch OpenEnv Hackathon × SST Bangalore (April 2026)**.
 
 ## Links
 
+- **🎬 Interactive Gradio demo (try it now):** https://huggingface.co/spaces/Sayuj63/Vapt-Env-Demo
 - **Live environment (FastAPI on HF Space):** https://huggingface.co/spaces/Sayuj63/Vapt-env
 - **GitHub source code:** https://github.com/Sayuj63/vapt-env
 - **W&B training run (public):** https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s
