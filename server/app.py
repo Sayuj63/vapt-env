@@ -25,7 +25,7 @@ except ImportError:
 
 from typing import Any, Dict, List
 from pydantic import BaseModel, Field
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 
 
 class GraderRequest(BaseModel):
@@ -43,6 +43,116 @@ app = create_app(
     env_name="security_audit_env",
     max_concurrent_envs=4,
 )
+
+
+# --- Friendly landing page (HF Space root) ---
+
+_LANDING_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VAPT-Env — AI Security Audit Environment</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0f172a; color: #e2e8f0; max-width: 880px; margin: 40px auto;
+         padding: 24px; line-height: 1.55; }
+  h1 { color: #2dd4bf; margin: 0 0 8px; }
+  h2 { color: #67e8f9; margin-top: 28px; border-bottom: 1px solid #334155; padding-bottom: 6px; }
+  a { color: #2dd4bf; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: #1e293b; padding: 2px 6px; border-radius: 3px; color: #fde68a; }
+  .pill { display: inline-block; background: #134e4a; color: #5eead4; padding: 2px 10px;
+          border-radius: 12px; font-size: 12px; margin-right: 6px; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+         gap: 16px; margin: 16px 0; }
+  .card { background: #1e293b; padding: 14px 18px; border-radius: 8px; border: 1px solid #334155; }
+  .card h3 { margin: 0 0 6px; color: #f8fafc; font-size: 15px; }
+  .card p { margin: 4px 0; color: #94a3b8; font-size: 13px; }
+  .num { color: #2dd4bf; font-weight: 700; font-size: 22px; }
+  hr { border: 0; border-top: 1px solid #334155; margin: 28px 0; }
+  ul li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>🛡️ VAPT-Env</h1>
+<p>
+  <span class="pill">OpenEnv</span>
+  <span class="pill">FastAPI</span>
+  <span class="pill">Multi-Agent</span>
+  <span class="pill">v2.0.0</span>
+</p>
+<p>
+  An <strong>OpenEnv-compliant pen-testing environment</strong> that teaches
+  Llama 3.2 3B to do real security audit reasoning — not pattern matching.
+  Built for the Meta PyTorch OpenEnv Hackathon × SST Bangalore 2026.
+</p>
+
+<div class="row">
+  <div class="card">
+    <p><span class="num">6.4×</span> avg score lift</p>
+    <p>Llama 3.2 3B post-GRPO: 0.075 → 0.482</p>
+  </div>
+  <div class="card">
+    <p><span class="num">3</span> hackathon themes</p>
+    <p>World Modeling · Multi-Agent · Long-Horizon</p>
+  </div>
+  <div class="card">
+    <p><span class="num">11</span>-component grader</p>
+    <p>Reward-hacking-resistant by design</p>
+  </div>
+</div>
+
+<h2>Quick links</h2>
+<ul>
+  <li><a href="https://github.com/Sayuj63/vapt-env">📦 GitHub repo</a> — env + grader + 78 tests + Colab notebook</li>
+  <li><a href="https://huggingface.co/Sayuj63/vapt-env-llama32-3b-grpo">🤗 Trained adapter on HF Hub</a> — Llama 3.2 3B + LoRA r=16</li>
+  <li><a href="https://wandb.ai/sayujpillai63-itm/vapt-env-grpo/runs/ln2jq71s">📊 W&amp;B training run</a> — real reward curve, 112 GRPO steps</li>
+</ul>
+
+<h2>API endpoints (this Space is the live env)</h2>
+<ul>
+  <li><a href="/docs">/docs</a> — interactive OpenAPI / Swagger UI</li>
+  <li><a href="/health">/health</a> — health check</li>
+  <li><a href="/tasks">/tasks</a> — available scenarios + action schema + tool list</li>
+  <li><a href="/openapi.json">/openapi.json</a> — full OpenAPI spec</li>
+  <li><code>POST /reset</code> + <code>POST /step</code> — OpenEnv standard episode protocol</li>
+</ul>
+
+<h2>How to talk to this env</h2>
+<p>
+  This Space speaks the OpenEnv protocol. From any environment with
+  <code>openenv-core</code> installed:
+</p>
+<pre style="background:#1e293b;padding:14px;border-radius:6px;overflow-x:auto;">
+from security_audit_env import SecurityAuditEnv, SecurityAuditAction
+
+with SecurityAuditEnv(base_url="https://Sayuj63-Vapt-env.hf.space").sync() as env:
+    r = env.reset(scenario_id="easy")
+    rs = env.step(SecurityAuditAction(
+        action_type="use_tool",
+        tool_name="network_scan",
+        arguments={"target": "10.0.1.0/24"},
+    ))
+    print(rs.observation.discovered_hosts)
+</pre>
+
+<p>Full README on the <a href="https://github.com/Sayuj63/vapt-env#readme">GitHub repo</a> — scroll for the full architecture, the multi-dimensional grader, and the GRPO post-training results.</p>
+
+<hr>
+<p style="color:#64748b;font-size:13px;text-align:center;">
+  Built for Meta PyTorch OpenEnv Hackathon × SST Bangalore 2026
+</p>
+
+</body>
+</html>"""
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Friendly landing page so visitors don't see {'detail':'Not Found'}."""
+    return HTMLResponse(content=_LANDING_HTML)
 
 
 # --- Health check ---
